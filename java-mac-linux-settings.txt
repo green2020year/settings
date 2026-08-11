@@ -1,0 +1,17 @@
+Easiest: SDKMAN!
+SDKMAN lets you install and switch between multiple JDK versions similarly to nvm.
+
+On Linux/macOS:
+curl -s "https://get.sdkman.io" | bash
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+
+Check available Java versions:
+sdk list java
+
+Install different versions:
+sdk install java 17
+sdk install java 21
+sdk install java 25
+
+Switch temporarily:
+sdk use java 17

@@ -1,0 +1,19 @@
+1. Install Jabba
+Open PowerShell and run:
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+Invoke-Expression (
+    Invoke-WebRequest -UseBasicParsing 'https://github.com/shyiko/jabba/raw/master/install.ps1'
+).Content
+Then close PowerShell and open a new PowerShell window.
+
+2. Check Jabba
+jabba --version
+
+3. See available Java versions
+jabba ls-remote
+
+For example, install Java 17:
+jabba install openjdk@17
+
+4. Switch Java versions
+jabba use openjdk@17
