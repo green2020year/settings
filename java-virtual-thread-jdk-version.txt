@@ -1,0 +1,111 @@
+This is one of the really interesting changes in modern Java: 
+you can often replace complicated async/reactive code 
+with 
+straightforward blocking code running on virtual threads, 
+while still getting very high concurrency.
+
+A Java Virtual Thread is a lightweight thread managed by the JVM, 
+designed to make it cheap to run thousands or millions of concurrent tasks.
+It was introduced as a preview feature in Java 19 and became a permanent feature in Java 21.
+
+Traditional Java thread
+Normally:
+Thread thread = new Thread(() -> {
+    System.out.println("Hello");
+});
+thread.start();
+A traditional/platform thread is closely associated with an OS thread.
+If you create 10,000 of them, you can run into significant memory and scheduling overhead.
+
+
+You need JDK 21 or newer to use the permanent virtual-thread API.
+For example:
+// Java 21+
+ExecutorService executor =
+    Executors.newVirtualThreadPerTaskExecutor();
+
+executor.submit(() -> {
+    // task
+});
+
+
+One important warning
+Virtual threads do not make CPU work faster.
+For example:
+Thread.startVirtualThread(() -> {
+    while (true) {
+        // heavy CPU calculation
+    }
+});
+
+Creating millions of virtual threads won't give you millions of CPU cores.
+They're primarily about high concurrency, especially things like:
+HTTP requests
+     ↓
+Database queries
+     ↓
+File I/O
+     ↓
+Network requests
+     ↓
+Waiting
+
+rather than:
+CPU-intensive calculation
+
+
+
+|              | Platform Thread      | Virtual Thread                  |
+| ------------ | -------------------- | ------------------------------- |
+| Managed by   | OS/JVM               | JVM                             |
+| Cost         | Relatively expensive | Very cheap                      |
+| Number       | Usually limited      | Very large                      |
+| Memory       | More                 | Much less                       |
+| Great for    | CPU work             | Concurrent I/O                  |
+| Java version | Old                  | Java 21+                        |
+| Blocking I/O | Ties up OS thread    | Usually releases carrier thread |
+
+They're especially good for I/O-heavy applications:
+Thread.startVirtualThread(() -> {
+    String result = httpRequest();
+    saveToDatabase(result);
+});
+
+The important idea
+Think of it like this:
+
+Traditional threads
+Java Thread  ─────── OS Thread
+Java Thread  ─────── OS Thread
+Java Thread  ─────── OS Thread
+Java Thread  ─────── OS Thread
+
+Virtual threads:
+Virtual Thread ─┐
+Virtual Thread ─┤
+Virtual Thread ─┤
+Virtual Thread ─┤──> JVM manages a smaller number of OS threads
+Virtual Thread ─┤
+Virtual Thread ─┘
+
+Virtual thread
+With Java 21+:
+Thread.startVirtualThread(() -> {
+    System.out.println("Hello");
+});
+Thread.startVirtualThread(() -> {
+    // do some work
+});
+
+Virtual threads are much cheaper.
+You can create a very large number of them:
+for (int i = 0; i < 1_000_000; i++) {
+    Thread.startVirtualThread(() -> {
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+        }
+    });
+}
+Creating one million virtual threads is possible in scenarios 
+where creating one million OS/platform threads would be completely impractical.
