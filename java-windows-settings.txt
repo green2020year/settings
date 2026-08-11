@@ -1,3 +1,40 @@
+The cleanest setup is Scoop + Java packages + JAVA_HOME switching.
+
+Install Scoop:
+
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+irm get.scoop.sh | iex
+
+Add Java bucket:
+$ scoop bucket add java
+
+Search available JDKs:
+$ scoop search openjdk
+
+You'll typically find packages such as:
+temurin8-jdk
+temurin17-jdk
+temurin21-jdk
+temurin25-jdk
+
+Install them:
+scoop install temurin8-jdk
+scoop install temurin17-jdk
+scoop install temurin21-jdk
+
+Then you can switch between versions using Scoop's Java management:
+scoop reset temurin8-jdk
+or:
+scoop reset temurin17-jdk
+or:
+scoop reset temurin21-jdk
+
+Check:
+javac -version
+java -version
+
+
+---------------------------------------------------------------------------------------
 1. Install Jabba
 Open PowerShell and run:
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
