@@ -1,0 +1,102 @@
+If you specifically want "thread-like" concurrency
+
+Node.js has:
+
+1. worker_threads.
+const { Worker } = require("worker_threads");
+const worker = new Worker("./worker.js");
+
+But this is not equivalent to virtual threads. 
+Workers are much heavier and are intended mainly for CPU-intensive work.
+
+2. cluster
+
+Creates multiple Node.js processes. Again, not equivalent to virtual threads.
+
+3. Promise-based concurrency
+
+For I/O-heavy workloads, this is usually the closest Node.js approach:
+
+//For your 100,000 concurrent requests example, Promise.allSettled() is generally the better choice 
+//if you want to process every request independently, even when some fail.
+//If you want every result, including failures
+const tasks = [];
+
+for (let i = 0; i < 10; i++) {
+    tasks.push(fetch(`https://example.com/${i}`));
+}
+
+const results = await Promise.allSettled(tasks);
+
+for (const result of results) {
+    if (result.status === "rejected") {
+        console.log("NETWORK ERROR:", result.reason);
+        continue;
+    }
+
+    const response = result.value;
+
+    //HTTP/1.1 404 Not Found
+    if (!response.ok) {
+        console.log("HTTP ERROR:", response.status);
+        continue;
+    }
+
+    console.log("SUCCESS:", response.status);
+
+    //const text = await response.text();
+    //console.log(text);    
+}
+You can have a very large number of concurrent operations without creating 100,000 OS threads.
+
+
+fetch() starts executing when you call fetch() inside the loop.
+Promise.allSettled() does not start the fetches.
+
+Conceptually:
+i = 0 → fetch(...) starts → returns Promise → push
+i = 1 → fetch(...) starts → returns Promise → push
+i = 2 → fetch(...) starts → returns Promise → push
+...
+i = 9 → fetch(...) starts → returns Promise → push
+
+loop finished
+
+Promise.allSettled(tasks)
+        ↓
+waits for those existing Promises
+        ↓
+returns their final states
+
+
+The important distinction is:
+fetch(...)
+initiates the asynchronous operation and immediately returns a Promise.
+
+Promise.allSettled(tasks)
+doesn't initiate those requests. It observes the promises and waits until all of them settle.
+
+Therefore, all 10 requests can be running concurrently
+
+Loop:
+─────────────────────────────────────────────
+fetch(0) ────────────────┐
+fetch(1) ────────────────┤
+fetch(2) ────────────────┤
+fetch(3) ────────────────┤
+fetch(4) ────────────────┤
+...                      │
+fetch(9) ────────────────┤
+                         ↓
+                  all requests
+                  are in progress
+
+Promise.allSettled()
+                         ↓
+                  waits for all
+                         ↓
+                    results[]
+
+That's one of the key differences from:
+await fetch(...);
+inside the loop, which would make the requests sequential.                    
